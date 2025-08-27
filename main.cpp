@@ -161,12 +161,40 @@ void test_smart_pointer(void)
     printf("p[3] = 0x%X \n", p[3]);
 }
 
+void test_string_to_char(void)
+{
+    vector<string> id;
+    const char *test[3] = {"String1", "String2", "String3"};
+
+    id.push_back("mId0000");
+    id.push_back("mId0001");
+    id.push_back("mId0002");
+    id.push_back("mId0003");
+    id.push_back("mId0004");
+
+    for (auto it = id.begin(); it != id.end(); ++it) {
+        std::cout << *it << std::endl;
+    }
+    for (const char*& it : test) {
+        printf("test string[%s]\n", it);
+    }
+
+    vector<const char*> target;
+    for (const std::string& it : id) {
+        target.push_back(it.c_str());
+    }
+    for (const char*& it : target) {
+        printf("string = %s\n", it);
+    }
+}
+
 int main()
 {
 #if 1
     test_array();
     test_string();
     test_smart_pointer();
+    test_string_to_char();
 #else
     class avlTree tree;
     tree.function1();
