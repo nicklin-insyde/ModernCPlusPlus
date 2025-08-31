@@ -127,8 +127,8 @@ typedef struct XXX {
     {
        printf("XXX destructor\n");
         if (ptr) {
-            printf("free ptr\n");
-            free(ptr);
+            printf("delete ptr\n");
+            delete ptr;
             ptr = nullptr;
         }
 	}
@@ -187,14 +187,137 @@ void test_string_to_char(void)
         printf("string = %s\n", it);
     }
 }
+struct dimm_info
+{
+#define MAX_SIZE 10
+    int smart_ptr_size;
+    unsigned char serial_number;
+    unsigned char data1;
+    unsigned char data2;
+    unsigned char data3;
+    unsigned char data4;
+    unsigned char data5;
+    char *ptr;
+    std::unique_ptr<char[]> smart_ptr;
+    std::string number;
+
+    dimm_info(unsigned char sn, unsigned char arg1, unsigned char arg2, const int max_size):dimm_info(sn, arg1, arg2)
+    {
+        smart_ptr_size = max_size;
+        smart_ptr = make_unique<char[]>(smart_ptr_size);
+        char *p = smart_ptr.get();
+        for (int i=0; i<smart_ptr_size; i++) {
+            p[i] = i;
+        }
+        printf("dimm_info constructor 3 - sn[0x%02X] - [0x%02X, 0x%02X, 0x%02X]\n",
+                                                       serial_number, data1, data2, max_size);
+    }
+
+    dimm_info(unsigned char sn, unsigned char arg1, unsigned char arg2):dimm_info()
+    {
+        serial_number = sn;
+        data1 = arg1;
+        data2 = arg2;
+        printf("dimm_info constructor 2 - sn[0x%02X] - [0x%02X, 0x%02X]\n",
+                                                       serial_number, data1, data2);
+    }
+
+    dimm_info()
+    {
+        smart_ptr_size = 0;
+        serial_number = 0;
+        data1 = 0;
+        data2 = 1;
+        data3 = 2;
+        data4 = 3;
+        data5 = 4;
+        number = "16627697";
+        smart_ptr = nullptr;
+        ptr = new char[MAX_SIZE];
+        for (int i =0; i<MAX_SIZE; i++) {
+            ptr[i] = i;
+        }
+        printf("dimm_info constructor 1\n");
+    }
+    ~dimm_info()
+    {
+        printf("dimm_info deconstructor - 0x%02X\n", serial_number);
+        if (ptr) {
+            printf("delete ptr\n");
+            delete ptr;
+            ptr = nullptr;
+        }
+    }
+};
+
+class Controller
+{
+public:
+    Controller()
+    {
+        printf("Controller constructor\n");
+    }
+
+    ~Controller()
+    {
+        printf("Controller deconstructor\n");
+    }
+
+    void add_dimm1(std::unique_ptr<struct dimm_info> &info) { _dimm.push_back(std::move(info)); }
+    void add_dimm2(std::unique_ptr<struct dimm_info>  info) { _dimm.push_back(std::move(info)); }
+    void traversal(void)
+    {
+        printf("traversal ---\n");
+        for (auto &it : _dimm) {
+            printf("Start -----------\n");
+            printf("(sn, 1, 2, 3, 4, 5) = (0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X)\n",
+                                         it->serial_number, it->data1, it->data2, it->data3, it->data4, it->data5);
+            if (it->ptr) {
+                for (int i=0; i<MAX_SIZE; i++) {
+                    printf("ptr[%d]=0x%02X\n", i, it->ptr[i]);
+                }
+            }
+            char *p = it->smart_ptr.get();
+            if (p == nullptr) {
+                printf("smart_ptr is nullptr\n");
+            } else {
+                printf("size = %ld\n", strlen(p));
+                for (int i=0; i<it->smart_ptr_size; i++) {
+                    printf("smart_ptr[%d]=0x%02X\n", i, p[i]);
+                }
+            }
+            printf("End -----------\n");
+        }
+    }
+
+private:
+    std::vector<std::unique_ptr<struct dimm_info>> _dimm;
+};
+
+
+void test_smart_pointer_and_vector(void)
+{
+    std::unique_ptr<Controller> raid = std::make_unique<Controller>();
+    std::unique_ptr<struct dimm_info> p0 = std::make_unique<struct dimm_info>();
+    std::unique_ptr<struct dimm_info> p1 = std::make_unique<struct dimm_info>(0x20, 0x01, 0x02);
+    raid->add_dimm1(p0);
+    raid->add_dimm1(p1);
+    raid->add_dimm2(std::make_unique<struct dimm_info>(0x21, 0x08, 0x09));
+    raid->add_dimm2(std::make_unique<struct dimm_info>(0x22, 0x0A, 0x0B, 16));
+    if ((p0 == nullptr) && (p1 == nullptr)) {
+        printf("OOOPS! \n");
+    }
+    raid->traversal();
+}
 
 int main()
 {
 #if 1
-    test_array();
-    test_string();
-    test_smart_pointer();
+    //test_array();
+    //test_string();
+    //test_smart_pointer();
     test_string_to_char();
+    test_smart_pointer_and_vector();
 #else
     class avlTree tree;
     tree.function1();
