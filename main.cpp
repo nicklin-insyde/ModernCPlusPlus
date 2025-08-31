@@ -261,6 +261,15 @@ public:
     ~Controller()
     {
         printf("Controller deconstructor\n");
+        while (!_dimm_old.empty()) {
+            struct dimm_info *p = _dimm_old.back();
+            _dimm_old.pop_back();
+            if (p != nullptr){
+                printf("delete _dimm_old sn[0x%02X] \n", p->serial_number);
+                delete p;
+                p = nullptr;
+            }
+        }
     }
 
     void add_dimm1(std::unique_ptr<struct dimm_info> &info) { _dimm.push_back(std::move(info)); }
@@ -290,8 +299,18 @@ public:
         }
     }
 
+    void add_dimm3(struct dimm_info *p) { _dimm_old.push_back(p); }
+
+    void traversal_dimm_old(void)
+    {
+        for(auto it : _dimm_old) {
+            printf("it->sn = 0x%02X\n", it->serial_number);
+        }
+    }
+
 private:
     std::vector<std::unique_ptr<struct dimm_info>> _dimm;
+    std::vector<struct dimm_info *> _dimm_old;
 };
 
 
@@ -308,6 +327,11 @@ void test_smart_pointer_and_vector(void)
         printf("OOOPS! \n");
     }
     raid->traversal();
+    struct dimm_info *test1 = new struct dimm_info(0x23, 0x0F, 0x0E, 23);
+    struct dimm_info *test2 = new struct dimm_info(0x24, 0xFF, 0x1E, 25);
+    raid->add_dimm3(test1);
+    raid->add_dimm3(test2);
+    raid->traversal_dimm_old();
 }
 
 int main()
