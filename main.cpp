@@ -163,6 +163,7 @@ void test_smart_pointer(void)
 
 void test_string_to_char(void)
 {
+    vector<int> id_int;
     vector<string> id;
     const char *test[3] = {"String1", "String2", "String3"};
 
@@ -171,6 +172,15 @@ void test_string_to_char(void)
     id.push_back("mId0002");
     id.push_back("mId0003");
     id.push_back("mId0004");
+
+    id_int.push_back(1);
+    id_int.push_back(2);
+    id_int.push_back(3);
+    id_int.push_back(4);
+
+    for (auto it : id_int) {
+        std::cout << "int = " << it << std::endl;
+    }
 
     for (auto it = id.begin(); it != id.end(); ++it) {
         std::cout << *it << std::endl;
@@ -250,11 +260,19 @@ struct dimm_info
     }
 };
 
+typedef struct {
+    int test1;
+    int test2;
+    int test3;
+    int test4;
+} MR8_BITMAP;
+
 class Controller
 {
 public:
     Controller()
     {
+        bitmap = nullptr;
         printf("Controller constructor\n");
     }
 
@@ -308,7 +326,41 @@ public:
         }
     }
 
+    void create_MR8_BITMAP(void)
+    {
+        std::unique_ptr<MR8_BITMAP> local = std::make_unique<MR8_BITMAP>();
+        local->test1 = 1;
+        local->test2 = 2;
+        local->test3 = 3;
+        local->test4 = 4;
+        printf("local->test1 = %d\n", local->test1);
+        printf("local->test2 = %d\n", local->test2);
+        printf("local->test3 = %d\n", local->test3);
+        printf("local->test4 = %d\n", local->test4);
+        bitmap = std::move(local);
+        if (local == nullptr) {
+            printf("local is nullptr\n");
+        } else {
+            printf("local is NOT nullptr\n");
+        }
+    }
+
+    void show_bitmap(void)
+    {
+        if (bitmap == nullptr) {
+            printf("bitmap is nullptr\n");
+            return;
+        }
+        bitmap->test1 = 234;
+        printf("bitmap->test1 = %d\n", bitmap->test1);
+        printf("bitmap->test2 = %d\n", bitmap->test2);
+        printf("bitmap->test3 = %d\n", bitmap->test3);
+        printf("bitmap->test4 = %d\n", bitmap->test4);
+    }
+
 private:
+    std::unique_ptr<MR8_BITMAP> bitmap;
+
     std::vector<std::unique_ptr<struct dimm_info>> _dimm;
     std::vector<struct dimm_info *> _dimm_old;
 };
@@ -334,6 +386,14 @@ void test_smart_pointer_and_vector(void)
     raid->traversal_dimm_old();
 }
 
+void test_transfer_ownership_of_unique_ptr()
+{
+    std::unique_ptr<Controller> controller = std::make_unique<Controller>();
+    controller->show_bitmap();
+    controller->create_MR8_BITMAP();
+    controller->show_bitmap();
+}
+
 int main()
 {
 #if 1
@@ -342,6 +402,7 @@ int main()
     //test_smart_pointer();
     test_string_to_char();
     test_smart_pointer_and_vector();
+    test_move_ownership_of_unique_ptr();
 #else
     class avlTree tree;
     tree.function1();
