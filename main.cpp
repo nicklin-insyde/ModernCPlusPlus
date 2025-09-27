@@ -402,7 +402,7 @@ int main()
     //test_smart_pointer();
     test_string_to_char();
     test_smart_pointer_and_vector();
-    test_move_ownership_of_unique_ptr();
+    test_transfer_ownership_of_unique_ptr();
 #else
     class avlTree tree;
     tree.function1();
