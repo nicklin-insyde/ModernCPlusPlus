@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string.h>
+#include <semaphore.h>
 #include "sync_queue.h"
 #include "tree.h"
 
@@ -394,15 +395,93 @@ void test_transfer_ownership_of_unique_ptr()
     controller->show_bitmap();
 }
 
+int CreateThread(void * (*entry_function)(void*), void *arg)
+{
+    int rval = -1, ret = 0;
+    pthread_t       p_thread;
+    pthread_attr_t  attr;
+ 
+    //Have to create threads as daemon (in detached state) otherwise hit a limit in Linux
+    if(0 == (ret = pthread_attr_init(&attr))) {
+        if(0 == (ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED))) {
+            if( 0 == (ret = pthread_create(&p_thread, &attr, entry_function, (void *)arg))) {
+                rval = 0;
+            } else {
+                printf("%s: pthread_create failed, ret:0x%x, errno:0x%x", __func__, ret, errno);
+            }
+        } else {
+            printf("%s: pthread_attr_setdetachstate failed, ret:0x%x, errno:0x%x", __func__, ret, errno);
+        }
+        if (0 != (ret = pthread_attr_destroy(&attr))) {
+            printf("%s: pthread_attr_destroy failed, ret:0x%x, errno:0x%x", __func__, ret, errno);
+        }
+    } else {
+        printf("%s: pthread_attr_init failed, ret:0x%x, errno:0x%x", __func__, ret, errno);
+    }
+    return rval;
+}
+
+typedef struct _ThreadArgs {
+    int argc;
+    void *argv[32];
+    sem_t sem;
+} ThreadArgs;
+
+void *ControllerFWUpdateThread(void *pArg)
+{
+    ThreadArgs *tmp = (ThreadArgs *)pArg;
+    int argc = tmp->argc;
+    printf("argc=%d\n", argc);
+    for (int i=0; i<argc; i++) {
+        printf("[%d/%d] - %s\n", i, argc, (char *)tmp->argv[i]);
+    }
+    printf("[1] b4 sema_post\n");
+    sem_post(&tmp->sem);
+    printf("[1] aft sema_post\n");
+    return NULL;
+}
+
+void test_pthread()
+{
+    int ret = 0;
+    ThreadArgs *args = (ThreadArgs *)malloc(sizeof(ThreadArgs));
+    memset(args, 0, sizeof(ThreadArgs));
+    args->argc = 3;
+    args->argv[0] = (void *) strdup("test one");
+    args->argv[1] = (void *) strdup("test two");
+    args->argv[2] = (void *) strdup("test three");
+    ret = CreateThread(ControllerFWUpdateThread, (void *)args);
+    if (ret != 0) {
+        printf("failed to create pthread\n");
+    } else {
+        printf("pthread is created - OK\n");
+        printf("[0] b4 sem_wait\n");
+        sem_wait(&args->sem);
+        printf("[0] after sem_wait\n");
+    }
+    //
+    // garbage clean
+    //
+    for (int i=0; i<3; i++) {
+        if (args->argv[i]) {
+            free(args->argv[i]);
+            args->argv[i] = nullptr;
+        }
+    }
+    free(args);
+    args = nullptr;
+}
+
 int main()
 {
 #if 1
     //test_array();
     //test_string();
     //test_smart_pointer();
-    test_string_to_char();
-    test_smart_pointer_and_vector();
-    test_transfer_ownership_of_unique_ptr();
+    //test_string_to_char();
+    //test_smart_pointer_and_vector();
+    //test_transfer_ownership_of_unique_ptr();
+    test_pthread();
 #else
     class avlTree tree;
     tree.function1();
