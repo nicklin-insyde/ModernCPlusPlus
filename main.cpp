@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string.h>
 #include <semaphore.h>
+#include <unistd.h>
 #include "sync_queue.h"
 #include "tree.h"
 
@@ -400,10 +401,11 @@ int CreateThread(void * (*entry_function)(void*), void *arg)
     int rval = -1, ret = 0;
     pthread_t       p_thread;
     pthread_attr_t  attr;
- 
+    int detach_state = PTHREAD_CREATE_DETACHED;
+
     //Have to create threads as daemon (in detached state) otherwise hit a limit in Linux
     if(0 == (ret = pthread_attr_init(&attr))) {
-        if(0 == (ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED))) {
+        if(0 == (ret = pthread_attr_setdetachstate(&attr, detach_state))) {
             if( 0 == (ret = pthread_create(&p_thread, &attr, entry_function, (void *)arg))) {
                 rval = 0;
             } else {
@@ -438,6 +440,12 @@ void *ControllerFWUpdateThread(void *pArg)
     printf("[1] b4 sema_post\n");
     sem_post(&tmp->sem);
     printf("[1] aft sema_post\n");
+    while (1) {
+        printf("[1] loop 1\n");
+        sleep(1);
+        printf("[1] loop 2\n");
+	}
+    printf("leave pthread\n");
     return NULL;
 }
 
@@ -458,18 +466,22 @@ void test_pthread()
         printf("[0] b4 sem_wait\n");
         sem_wait(&args->sem);
         printf("[0] after sem_wait\n");
+        sleep(5);
+        printf("ready to kill\n");
     }
     //
     // garbage clean
     //
     for (int i=0; i<3; i++) {
         if (args->argv[i]) {
+            printf("free %d\n", i);
             free(args->argv[i]);
             args->argv[i] = nullptr;
         }
     }
     free(args);
     args = nullptr;
+    printf("881, end of world\n");
 }
 
 int main()
